@@ -1,4 +1,4 @@
-const { roomPrefix } = require("../constants/constants");
+const { roomPrefix, timeLimit } = require("../constants/constants");
 const wordsDb = require("../database/words.json");
 const Chance = require("chance");
 const { fetchWordDefination } = require("../services/wordDefination");
@@ -34,5 +34,5 @@ module.exports.getAvailableRoom = (roomsAdapter) => {
 module.exports.generateRandomWordAndDefination = async () => {
   const random_word = chance.pickone(wordsDb);
   const word_defination = await fetchWordDefination(random_word);
-  return { word: random_word, defination: word_defination };
+  return { word: random_word, defination: word_defination, counter: timeLimit };
 };

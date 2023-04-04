@@ -5,8 +5,10 @@ const {
   getAvailableRoom,
   generateRandomWordAndDefination,
 } = require("./utils/utils");
+const { maxRoomSize, timeLimit } = require("./constants/constants");
 const port = process.env.PORT || 4000;
 const server = require("http").createServer(app);
+
 const io = require("socket.io")(server, {
   cors: {
     origin: "http://localhost:5173",
@@ -17,8 +19,10 @@ app.use(cors());
 
 const rooms = io.sockets.adapter.rooms;
 
-io.on("connection", (socket) => {
-  // socket.leave(socket.id);
+io.on("connection", async (socket) => {
+  const players_count = await io.fetchSockets();
+  io.emit("players_count", players_count.length);
+
   socket.on("join_room", async (data) => {
     // Filter out rooms with only one socket connected
 
@@ -41,13 +45,12 @@ io.on("connection", (socket) => {
     //   rooms.get(selectedRomm)
     // );
 
-    if (rooms.get(selectedRomm).size === 2) {
+    if (rooms.get(selectedRomm).size === maxRoomSize) {
       let romm = rooms.get(selectedRomm);
 
       const wordData = await generateRandomWordAndDefination();
       console.log(wordData);
       romm.data = wordData;
-      romm.data.counter = 120;
 
       let users = await io.in(selectedRomm).fetchSockets();
 
@@ -62,7 +65,7 @@ io.on("connection", (socket) => {
         io.in(selectedRomm).emit("start_game", {
           defination: wordData.defination,
           secret_word_length: wordData.word.length,
-          counter: 120,
+          counter: timeLimit,
         });
       }, 1000);
 
@@ -77,18 +80,34 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("user_guess", ({ user, room, guess }) => {
+  socket.on("user_guess", ({ user, room, guess, id }) => {
     const user_room = rooms.get(room);
 
     if (guess === user_room.data.word) {
-      socket.emit("user_guess", { data: { name: user, guess } });
+      socket.emit("user_guess", {
+        user: { name: user, guess, typing: false, id, correct: true },
+      });
+
       socket.broadcast.to(room).emit("user_guess", {
-        data: { name: user, guess: `${user} guessed the word :)` },
+        user: {
+          name: user,
+          guess: `${user} guessed the word :)`,
+          typing: false,
+          id,
+          correct: true,
+        },
       });
       return;
     }
+
     io.in(room).emit("user_guess", {
-      data: { name: user, guess },
+      user: { name: user, guess, typing: false, id, correct: false },
+    });
+  });
+
+  socket.on("user_typing", (user) => {
+    socket.broadcast.to(user.room).emit("user_typing", {
+      user: { name: user.name, guess: null, typing: true, id: user.id },
     });
   });
 
@@ -97,6 +116,7 @@ io.on("connection", (socket) => {
       console.log(reason);
     }
   });
+
   socket.on("disconnected", (data) => {
     io.in(data.room).disconnectSockets(true);
   });
