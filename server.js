@@ -4,6 +4,7 @@ const cors = require("cors");
 const {
   getAvailableRoom,
   generateRandomWordAndDefination,
+  generatePrivateRoom,
 } = require("./utils/utils");
 const { maxRoomSize, timeLimit } = require("./constants/constants");
 const port = process.env.PORT || 4000;
@@ -57,7 +58,6 @@ io.on("connection", async (socket) => {
       };
 
       romm.data = gameData;
-      console.log(romm.data);
 
       const wating_user = users.filter((u) => u.data.user.id !== user.id);
 
@@ -123,8 +123,22 @@ io.on("connection", async (socket) => {
       },
     });
   });
+  socket.on('generate_room',(data)=>{
+    const private_room = generatePrivateRoom();
+
+    socket.join(private_room);
+
+    const user = {
+      name: data.data.username,
+      room: private_room,
+      id: socket.id,
+    };
+
+    socket.data.user = user;
+  })
 
   socket.on("disconnect", (reason) => {
+    console.log(reason);
     if (reason && reason === "client namespace disconnect") {
       console.log(reason);
     }

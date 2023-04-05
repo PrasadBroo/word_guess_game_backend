@@ -18,7 +18,7 @@ module.exports.generateRoom = (prefix = roomPrefix) => {
 module.exports.getAvailableRoom = (roomsAdapter) => {
   let available_room;
   for (const [roomId, room] of roomsAdapter) {
-    if (room.size === 1 && roomId.substring(0, 4) === "room") {
+    if (room.size === 1 && roomId.substring(0, 4) === "room" && !room.data) {
       available_room = roomId;
       break;
     }
@@ -35,4 +35,8 @@ module.exports.generateRandomWordAndDefination = async () => {
   const random_word = chance.pickone(wordsDb);
   const word_defination = await fetchWordDefination(random_word);
   return { word: random_word, defination: word_defination, counter: timeLimit };
+};
+module.exports.generatePrivateRoom = () => {
+  const private_room_id = this.generateRoom("private");
+  return private_room_id;
 };
