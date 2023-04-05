@@ -25,7 +25,6 @@ io.on("connection", async (socket) => {
 
   socket.on("join_room", async (data) => {
     // Filter out rooms with only one socket connected
-
     const selectedRomm = getAvailableRoom(rooms);
 
     socket.join(selectedRomm);
@@ -47,12 +46,18 @@ io.on("connection", async (socket) => {
 
     if (rooms.get(selectedRomm).size === maxRoomSize) {
       let romm = rooms.get(selectedRomm);
+      let users = await io.in(selectedRomm).fetchSockets();
 
       const wordData = await generateRandomWordAndDefination();
-      console.log(wordData);
-      romm.data = wordData;
+      const gameData = {
+        ...wordData,
+        isGameRunning: true,
+        gameUsers: users,
+        winner: null,
+      };
 
-      let users = await io.in(selectedRomm).fetchSockets();
+      romm.data = gameData;
+      console.log(romm.data);
 
       const wating_user = users.filter((u) => u.data.user.id !== user.id);
 
@@ -61,13 +66,12 @@ io.on("connection", async (socket) => {
       socket.emit("found-player", wating_user[0].data.user);
 
       //delaying to make sure both clients gets event data
-      setTimeout(() => {
-        io.in(selectedRomm).emit("start_game", {
-          defination: wordData.defination,
-          secret_word_length: wordData.word.length,
-          counter: timeLimit,
-        });
-      }, 1000);
+
+      io.in(selectedRomm).emit("start_game", {
+        defination: wordData.defination,
+        secret_word_length: wordData.word.length,
+        counter: timeLimit,
+      });
 
       const decrementCounter = setInterval(() => {
         romm.data.counter -= 1;
@@ -84,6 +88,9 @@ io.on("connection", async (socket) => {
     const user_room = rooms.get(room);
 
     if (guess === user_room.data.word) {
+      user_room.data.winner = user;
+      user_room.data.isGameRunning = false;
+
       socket.emit("user_guess", {
         user: { name: user, guess, typing: false, id, correct: true },
       });
@@ -106,8 +113,14 @@ io.on("connection", async (socket) => {
   });
 
   socket.on("user_typing", (user) => {
+    if (!user) return;
     socket.broadcast.to(user.room).emit("user_typing", {
-      user: { name: user.name, guess: null, typing: true, id: user.id },
+      user: {
+        name: user.name,
+        guess: null,
+        typing: true,
+        id: user.id,
+      },
     });
   });
 
@@ -122,6 +135,9 @@ io.on("connection", async (socket) => {
   });
 });
 
+app.use((err, req, res) => {
+  console.log(err);
+});
 server.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
