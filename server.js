@@ -123,19 +123,81 @@ io.on("connection", async (socket) => {
       },
     });
   });
-  socket.on('generate_room',(data)=>{
+
+  socket.on("generate_room", (data) => {
     const private_room = generatePrivateRoom();
 
     socket.join(private_room);
 
     const user = {
-      name: data.data.username,
+      name: data.name,
       room: private_room,
       id: socket.id,
     };
 
     socket.data.user = user;
-  })
+
+    socket.emit("generated_room", private_room);
+  });
+
+  socket.on("join_private_room", async (data) => {
+    const { name, room: roomid } = data;
+    const room_details = rooms.get(roomid);
+
+    if (!room_details || !name) {
+      socket.emit("private_room_not_found", roomid);
+      return;
+    }
+
+    const user = {
+      name: name,
+      room: roomid,
+      id: socket.id,
+    };
+
+    socket.data.user = user;
+
+    if (room_details.size === 1) {
+      socket.join(roomid);
+
+      //
+
+      let users = await io.in(roomid).fetchSockets();
+
+      const wordData = await generateRandomWordAndDefination();
+      const gameData = {
+        ...wordData,
+        isGameRunning: true,
+        gameUsers: users,
+        winner: null,
+      };
+
+      room_details.data = gameData;
+
+      const wating_user = users.filter((u) => u.data.user.id !== user.id);
+
+      socket.broadcast.to(roomid).emit("found-player", user);
+
+      socket.emit("found-player", wating_user[0].data.user);
+
+      //delaying to make sure both clients gets event data
+
+      io.in(roomid).emit("start_game", {
+        defination: wordData.defination,
+        secret_word_length: wordData.word.length,
+        counter: timeLimit,
+      });
+
+      const decrementCounter = setInterval(() => {
+        room_details.data.counter -= 1;
+        if (room_details.data.counter === 0) {
+          clearInterval(decrementCounter);
+          io.in(roomid).emit("end_game");
+        } //end game
+        io.in(roomid).emit("decrement_counter", room_details.data.counter);
+      }, 1000);
+    }
+  });
 
   socket.on("disconnect", (reason) => {
     console.log(reason);
