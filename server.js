@@ -1,4 +1,4 @@
-require('dotenv').config()
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const cors = require("cors");
@@ -56,8 +56,9 @@ io.on("connection", async (socket) => {
         isGameRunning: true,
         gameUsers: users,
         winner: null,
+        winners: [],
       };
-
+      console.log(wordData);
       romm.data = gameData;
 
       const wating_user = users.filter((u) => u.data.user.id !== user.id);
@@ -78,7 +79,10 @@ io.on("connection", async (socket) => {
         romm.data.counter -= 1;
         if (romm.data.counter === 0) {
           clearInterval(decrementCounter);
-          io.in(selectedRomm).emit("end_game");
+          io.in(selectedRomm).emit("end_game", {
+            winners: romm.data.winners,
+            word: romm.data.word,
+          });
         } //end game
         io.in(selectedRomm).emit("decrement_counter", romm.data.counter);
       }, 1000);
@@ -87,8 +91,11 @@ io.on("connection", async (socket) => {
 
   socket.on("user_guess", ({ user, room, guess, id }) => {
     const user_room = rooms.get(room);
-
+    console.log(user_room.data.winners);
     if (guess === user_room.data.word) {
+      if (!user_room.data.winners.includes(user))
+        user_room.data.winners = [...user_room.data.winners, user];
+
       user_room.data.winner = user;
       user_room.data.isGameRunning = false;
 
@@ -180,8 +187,6 @@ io.on("connection", async (socket) => {
       socket.broadcast.to(roomid).emit("found-player", user);
 
       socket.emit("found-player", wating_user[0].data.user);
-
-      //delaying to make sure both clients gets event data
 
       io.in(roomid).emit("start_game", {
         defination: wordData.defination,
