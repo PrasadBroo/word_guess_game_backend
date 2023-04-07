@@ -1,21 +1,21 @@
+const { timeLimit } = require("../constants/constants");
 const { generateRandomWordAndDefination } = require("./utils");
 
-class Game {
-  constructor(io, socket) {
-    this.socket = socket;
+module.exports = class GameManager {
+  constructor(io) {
     this.io = io;
     this.rooms = io.sockets.adapter.rooms;
   }
 
-  user_init(username, room_name, socket_id) {
-    let user = { name: username, room: room_name, id: socket_id };
-    this.socket_user = user;
-    this.socket.data.user = user;
+  user_init(username, room_name, socket) {
+    let user = { name: username, room: room_name, id: socket.id };
+    socket.data.user = user;
   }
 
-  join_room(room_name) {
-    this.socket.join(room_name);
+  join_room(socket, room_name) {
+    socket.join(room_name);
   }
+
   async start_game(socket, room_name) {
     let users = await this.io.in(room_name).fetchSockets();
 
@@ -45,5 +45,41 @@ class Game {
       secret_word_length: wordData.word.length,
       counter: timeLimit,
     });
+
+    this.decreament_game_counter(room_details, room_name);
   }
-}
+
+  decreament_game_counter(room_details, room_name) {
+    const decrementCounter = setInterval(() => {
+      room_details.data.counter -= 1;
+      if (room_details.data.counter === 0) {
+        clearInterval(decrementCounter);
+        this.end_game(room_details,room_name)
+      } //end game
+      if (room_details.data.counter / 30 in [1, 2, 3, 4, 5]) {
+        this.revealLetter(
+          room_name,
+          room_details.data.word,
+          room_details.data.counter / 30
+        );
+      }
+
+      this.io
+        .in(room_name)
+        .emit("decrement_counter", room_details.data.counter);
+    }, 1000);
+  }
+
+  end_game(room_details,room_name) {
+    this.io.in(room_name).emit("end_game", {
+      winners: room_details.data.winners,
+      word: room_details.data.word,
+    });
+  }
+
+  revealLetter(room, word, wordIndexToReveal) {
+    let reveal = { letter: word[wordIndexToReveal], index: wordIndexToReveal };
+
+    this.io.in(room).emit("reveal_letter", reveal);
+  }
+};

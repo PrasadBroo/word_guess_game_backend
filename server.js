@@ -9,6 +9,7 @@ const {
 } = require("./utils/utils");
 const { maxRoomSize, timeLimit } = require("./constants/constants");
 const { revealLetter, decreamentGameCounter } = require("./utils/gameUtils");
+const GameManager = require("./utils/Game");
 const port = process.env.PORT || 4000;
 const server = require("http").createServer(app);
 
@@ -30,73 +31,14 @@ io.on("connection", async (socket) => {
     // Filter out rooms with only one socket connected
     const selectedRomm = getAvailableRoom(rooms);
 
-    socket.join(selectedRomm);
+    const game = new GameManager(io, socket);
 
-    const user = {
-      name: data.data.username,
-      room: selectedRomm,
-      id: socket.id,
-    };
+    game.join_room(socket, selectedRomm);
 
-    socket.data.user = user;
-
-    // console.log(
-    //   "selected room------->",
-    //   selectedRomm,
-    //   "room users---------->",
-    //   rooms.get(selectedRomm)
-    // );
+    game.user_init(data.data.username, selectedRomm, socket);
 
     if (rooms.get(selectedRomm).size === maxRoomSize) {
-      let romm = rooms.get(selectedRomm);
-      let users = await io.in(selectedRomm).fetchSockets();
-
-      const wordData = await generateRandomWordAndDefination();
-      const gameData = {
-        ...wordData,
-        isGameRunning: true,
-        gameUsers: users,
-        winner: null,
-        winners: [],
-      };
-      console.log(wordData);
-      romm.data = gameData;
-
-      const wating_user = users.filter((u) => u.data.user.id !== user.id);
-
-      socket.broadcast.to(selectedRomm).emit("found-player", user);
-
-      socket.emit("found-player", wating_user[0].data.user);
-
-      //delaying to make sure both clients gets event data
-
-      io.in(selectedRomm).emit("start_game", {
-        defination: wordData.defination,
-        secret_word_length: wordData.word.length,
-        counter: timeLimit,
-      });
-
-      decreamentGameCounter(io, romm, selectedRomm);
-      // const decrementCounter = setInterval(() => {
-      //   romm.data.counter -= 1;
-      //   if (romm.data.counter === 0) {
-      //     clearInterval(decrementCounter);
-      //     io.in(selectedRomm).emit("end_game", {
-      //       winners: romm.data.winners,
-      //       word: romm.data.word,
-      //     });
-      //   } //end game
-      //   if (romm.data.counter / 30 in [1, 2, 3, 4, 5]) {
-      //     revealLetter(
-      //       io,
-      //       selectedRomm,
-      //       romm.data.word,
-      //       romm.data.counter / 30
-      //     );
-      //   }
-
-      //   io.in(selectedRomm).emit("decrement_counter", romm.data.counter);
-      // }, 1000);
+      await game.start_game(socket, selectedRomm);
     }
   });
 
@@ -187,53 +129,14 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const user = {
-      name: name,
-      room: roomid,
-      id: socket.id,
-    };
+    const game = new GameManager(io, socket);
 
-    socket.data.user = user;
+    game.user_init(name, roomid, socket);
 
     if (room_details.size === 1) {
-      socket.join(roomid);
+      game.join_room(socket, roomid);
 
-      //
-
-      let users = await io.in(roomid).fetchSockets();
-
-      const wordData = await generateRandomWordAndDefination();
-      const gameData = {
-        ...wordData,
-        isGameRunning: true,
-        gameUsers: users,
-        winner: null,
-      };
-
-      room_details.data = gameData;
-
-      const wating_user = users.filter((u) => u.data.user.id !== user.id);
-
-      socket.broadcast.to(roomid).emit("found-player", user);
-
-      socket.emit("found-player", wating_user[0].data.user);
-
-      io.in(roomid).emit("start_game", {
-        defination: wordData.defination,
-        secret_word_length: wordData.word.length,
-        counter: timeLimit,
-      });
-
-      decreamentGameCounter(io, romm, selectedRomm);
-
-      const decrementCounter = setInterval(() => {
-        room_details.data.counter -= 1;
-        if (room_details.data.counter === 0) {
-          clearInterval(decrementCounter);
-          io.in(roomid).emit("end_game");
-        } //end game
-        io.in(roomid).emit("decrement_counter", room_details.data.counter);
-      }, 1000);
+      await game.start_game(socket, roomid);
     }
   });
 
