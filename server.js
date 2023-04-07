@@ -2,11 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const {
-  getAvailableRoom,
-  generateRandomWordAndDefination,
-  generatePrivateRoom,
-} = require("./utils/utils");
+const { getAvailableRoom, generatePrivateRoom } = require("./utils/utils");
 const { maxRoomSize, timeLimit } = require("./constants/constants");
 const { revealLetter, decreamentGameCounter } = require("./utils/gameUtils");
 const GameManager = require("./utils/Game");
@@ -16,6 +12,7 @@ const server = require("http").createServer(app);
 const io = require("socket.io")(server, {
   cors: {
     origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
   },
 });
 
