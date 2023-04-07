@@ -91,11 +91,11 @@ io.on("connection", async (socket) => {
 
   socket.on("user_guess", ({ user, room, guess, id }) => {
     const user_room = rooms.get(room);
-    if (guess === user_room.data.word) {
+    const correctGuess = guess === user_room.data.word;
+
+    if (correctGuess) {
       if (!user_room.data.winners.includes(user))
         user_room.data.winners = [...user_room.data.winners, id];
-
-      user_room.data.isGameRunning = false;
 
       socket.emit("user_guess", {
         user: { name: user, guess, typing: false, id, correct: true },
@@ -108,6 +108,27 @@ io.on("connection", async (socket) => {
           typing: false,
           id,
           correct: true,
+        },
+      });
+      return;
+    }
+
+    if (user_room.data.winners.includes(id)) {
+      const wordRegex = user_room.data.word.split("").join("|");
+      const regex = new RegExp(wordRegex, "g");
+      const modifiedGuess = guess.replace(regex, "?"); //users will still find a way ;-;
+
+      socket.emit("user_guess", {
+        user: { name: user, guess, typing: false, id, correct: false },
+      });
+
+      socket.broadcast.to(room).emit("user_guess", {
+        user: {
+          name: user,
+          guess: modifiedGuess,
+          typing: false,
+          id,
+          correct: false,
         },
       });
       return;

@@ -34,7 +34,7 @@ module.exports.getAvailableRoom = (roomsAdapter) => {
 module.exports.generateRandomWordAndDefination = async () => {
   const random_word = chance.pickone(wordsDb);
   const word_defination = await fetchWordDefination(random_word);
-  return { word: random_word, defination: word_defination, counter: 20 };
+  return { word: random_word, defination: word_defination, counter: 120 };
 };
 module.exports.generatePrivateRoom = () => {
   const private_room_id = this.generateRoom("private");
