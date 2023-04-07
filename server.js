@@ -91,12 +91,10 @@ io.on("connection", async (socket) => {
 
   socket.on("user_guess", ({ user, room, guess, id }) => {
     const user_room = rooms.get(room);
-    console.log(user_room.data.winners);
     if (guess === user_room.data.word) {
       if (!user_room.data.winners.includes(user))
-        user_room.data.winners = [...user_room.data.winners, user];
+        user_room.data.winners = [...user_room.data.winners, id];
 
-      user_room.data.winner = user;
       user_room.data.isGameRunning = false;
 
       socket.emit("user_guess", {
