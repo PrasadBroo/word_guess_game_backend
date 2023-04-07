@@ -8,7 +8,7 @@ const {
   generatePrivateRoom,
 } = require("./utils/utils");
 const { maxRoomSize, timeLimit } = require("./constants/constants");
-const { revealLetter } = require("./utils/gameUtils");
+const { revealLetter, decreamentGameCounter } = require("./utils/gameUtils");
 const port = process.env.PORT || 4000;
 const server = require("http").createServer(app);
 
@@ -76,26 +76,27 @@ io.on("connection", async (socket) => {
         counter: timeLimit,
       });
 
-      const decrementCounter = setInterval(() => {
-        romm.data.counter -= 1;
-        if (romm.data.counter === 0) {
-          clearInterval(decrementCounter);
-          io.in(selectedRomm).emit("end_game", {
-            winners: romm.data.winners,
-            word: romm.data.word,
-          });
-        } //end game
-        if (romm.data.counter / 30 in [1, 2, 3, 4, 5]) {
-          revealLetter(
-            io,
-            selectedRomm,
-            romm.data.word,
-            romm.data.counter / 30
-          );
-        }
+      decreamentGameCounter(io, romm, selectedRomm);
+      // const decrementCounter = setInterval(() => {
+      //   romm.data.counter -= 1;
+      //   if (romm.data.counter === 0) {
+      //     clearInterval(decrementCounter);
+      //     io.in(selectedRomm).emit("end_game", {
+      //       winners: romm.data.winners,
+      //       word: romm.data.word,
+      //     });
+      //   } //end game
+      //   if (romm.data.counter / 30 in [1, 2, 3, 4, 5]) {
+      //     revealLetter(
+      //       io,
+      //       selectedRomm,
+      //       romm.data.word,
+      //       romm.data.counter / 30
+      //     );
+      //   }
 
-        io.in(selectedRomm).emit("decrement_counter", romm.data.counter);
-      }, 1000);
+      //   io.in(selectedRomm).emit("decrement_counter", romm.data.counter);
+      // }, 1000);
     }
   });
 
@@ -222,6 +223,8 @@ io.on("connection", async (socket) => {
         secret_word_length: wordData.word.length,
         counter: timeLimit,
       });
+
+      decreamentGameCounter(io, romm, selectedRomm);
 
       const decrementCounter = setInterval(() => {
         room_details.data.counter -= 1;
