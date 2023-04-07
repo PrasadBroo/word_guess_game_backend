@@ -8,6 +8,7 @@ const {
   generatePrivateRoom,
 } = require("./utils/utils");
 const { maxRoomSize, timeLimit } = require("./constants/constants");
+const { revealLetter } = require("./utils/gameUtils");
 const port = process.env.PORT || 4000;
 const server = require("http").createServer(app);
 
@@ -84,6 +85,15 @@ io.on("connection", async (socket) => {
             word: romm.data.word,
           });
         } //end game
+        if (romm.data.counter / 30 in [1, 2, 3, 4, 5]) {
+          revealLetter(
+            io,
+            selectedRomm,
+            romm.data.word,
+            romm.data.counter / 30
+          );
+        }
+
         io.in(selectedRomm).emit("decrement_counter", romm.data.counter);
       }, 1000);
     }
