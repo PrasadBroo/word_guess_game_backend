@@ -26,6 +26,7 @@ module.exports = class GameManager {
       isGameRunning: true,
       gameUsers: users,
       winners: [],
+      users: users,
     };
 
     console.log(wordData);
@@ -52,9 +53,10 @@ module.exports = class GameManager {
   decreament_game_counter(room_details, room_name) {
     const decrementCounter = setInterval(() => {
       room_details.data.counter -= 1;
+      if(!room_details.data.isGameRunning)clearInterval(decrementCounter);
       if (room_details.data.counter === 0) {
         clearInterval(decrementCounter);
-        this.end_game(room_details,room_name)
+        this.end_game(room_details, room_name);
       } //end game
       if (room_details.data.counter / 30 in [1, 2, 3, 4, 5]) {
         this.revealLetter(
@@ -70,7 +72,12 @@ module.exports = class GameManager {
     }, 1000);
   }
 
-  end_game(room_details,room_name) {
+  async is_users_exist_in_room(room_name) {
+    let users = await this.io.in(room_name).fetchSockets();
+    return users.length === 2;
+  }
+
+  end_game(room_details, room_name) {
     this.io.in(room_name).emit("end_game", {
       winners: room_details.data.winners,
       word: room_details.data.word,
@@ -81,5 +88,12 @@ module.exports = class GameManager {
     let reveal = { letter: word[wordIndexToReveal], index: wordIndexToReveal };
 
     this.io.in(room).emit("reveal_letter", reveal);
+  }
+
+  player_left(socket, room_details) {
+    let users = room_details.data.users || [];
+    const left_user = users.find((u) => u.id !== socket.id);
+    room_details.data.isGameRunning = false;
+    socket.emit("player_left", { user: left_user.data.user });
   }
 };

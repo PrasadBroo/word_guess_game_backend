@@ -38,9 +38,17 @@ io.on("connection", async (socket) => {
     }
   });
 
-  socket.on("user_guess", ({ user, room, guess, id }) => {
+  socket.on("user_guess", async ({ user, room, guess, id }) => {
     const user_room = rooms.get(room);
     const correctGuess = guess === user_room.data.word;
+
+    const game = new GameManager(io);
+    let isUsersExists = await game.is_users_exist_in_room(room);
+
+    if (!isUsersExists) {
+      game.player_left(socket, user_room);
+      return;
+    }
 
     if (correctGuess) {
       if (!user_room.data.winners.includes(user))
@@ -144,6 +152,7 @@ io.on("connection", async (socket) => {
   });
 
   socket.on("user_active_status", ({ user, status }) => {
+    if (!user) return;
     socket.broadcast.to(user.room).emit("user_active_status", status);
   });
 
@@ -159,8 +168,6 @@ io.on("connection", async (socket) => {
 io.on("error", (err) => {
   console.error("Server-side error:", err);
 });
-
-
 
 server.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
