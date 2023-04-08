@@ -46,7 +46,7 @@ io.on("connection", async (socket) => {
     let isUsersExists = await game.is_users_exist_in_room(room);
 
     if (!isUsersExists) {
-      game.player_left(socket, user_room);
+      game.player_left(socket, user_room,room);
       return;
     }
 

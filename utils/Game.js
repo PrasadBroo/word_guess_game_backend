@@ -53,7 +53,7 @@ module.exports = class GameManager {
   decreament_game_counter(room_details, room_name) {
     const decrementCounter = setInterval(() => {
       room_details.data.counter -= 1;
-      if(!room_details.data.isGameRunning)clearInterval(decrementCounter);
+      if (!room_details.data.isGameRunning) clearInterval(decrementCounter);
       if (room_details.data.counter === 0) {
         clearInterval(decrementCounter);
         this.end_game(room_details, room_name);
@@ -82,6 +82,7 @@ module.exports = class GameManager {
       winners: room_details.data.winners,
       word: room_details.data.word,
     });
+    this.disconnect_players_in_room(room_name);
   }
 
   revealLetter(room, word, wordIndexToReveal) {
@@ -90,10 +91,15 @@ module.exports = class GameManager {
     this.io.in(room).emit("reveal_letter", reveal);
   }
 
-  player_left(socket, room_details) {
+  player_left(socket, room_details, room_name) {
     let users = room_details.data.users || [];
     const left_user = users.find((u) => u.id !== socket.id);
     room_details.data.isGameRunning = false;
     socket.emit("player_left", { user: left_user.data.user });
+    this.disconnect_players_in_room(room_name);
+  }
+
+  disconnect_players_in_room(room_name) {
+    this.io.in(room_name).disconnectSockets();
   }
 };

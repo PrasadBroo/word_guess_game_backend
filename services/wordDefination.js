@@ -8,6 +8,6 @@ module.exports.fetchWordDefination = async (word) => {
     const defination = data[0].meanings[0].definitions[0].definition;
     return defination;
   } catch (error) {
-    throw new Error(error);
+    return "Sorry i haven't found defination, good luck.";
   }
 };
