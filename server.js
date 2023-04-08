@@ -147,14 +147,21 @@ io.on("connection", async (socket) => {
     socket.broadcast.to(user.room).emit("user_active_status", status);
   });
 
+  socket.on("error", (err) => {
+    console.error("Client-side error:", err);
+  });
+
   socket.on("disconnected", (data) => {
     io.in(data.room).disconnectSockets(true);
   });
 });
 
-app.use((err, req, res) => {
-  return res.send("error");
+io.on("error", (err) => {
+  console.error("Server-side error:", err);
 });
+
+
+
 server.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
