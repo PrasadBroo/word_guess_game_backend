@@ -3,8 +3,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const { getAvailableRoom, generatePrivateRoom } = require("./utils/utils");
-const { maxRoomSize, timeLimit } = require("./constants/constants");
-const { revealLetter, decreamentGameCounter } = require("./utils/gameUtils");
+const { maxRoomSize } = require("./constants/constants");
 const GameManager = require("./utils/Game");
 const port = process.env.PORT || 4000;
 const server = require("http").createServer(app);
@@ -144,13 +143,17 @@ io.on("connection", async (socket) => {
     }
   });
 
+  socket.on("user_active_status", ({ user, status }) => {
+    socket.broadcast.to(user.room).emit("user_active_status", status);
+  });
+
   socket.on("disconnected", (data) => {
     io.in(data.room).disconnectSockets(true);
   });
 });
 
 app.use((err, req, res) => {
-  console.log(err);
+  return res.send("error");
 });
 server.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
