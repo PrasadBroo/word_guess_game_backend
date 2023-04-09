@@ -126,7 +126,7 @@ io.on("connection", async (socket) => {
     const room_details = rooms.get(roomid);
 
     if (!room_details || !name) {
-      socket.emit("private_room_not_found", roomid);
+      socket.emit("room_not_found", roomid);
       return;
     }
 
