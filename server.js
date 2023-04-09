@@ -17,6 +17,11 @@ const io = require("socket.io")(server, {
 
 app.use(cors());
 
+app.get("/ping", (req, res) => {
+  //to avoid sleeping in free tier
+  res.send("success");
+});
+
 const rooms = io.sockets.adapter.rooms;
 
 io.on("connection", async (socket) => {
@@ -46,7 +51,7 @@ io.on("connection", async (socket) => {
     let isUsersExists = await game.is_users_exist_in_room(room);
 
     if (!isUsersExists) {
-      game.player_left(socket, user_room,room);
+      game.player_left(socket, user_room, room);
       return;
     }
 
