@@ -47,14 +47,6 @@ io.on("connection", async (socket) => {
     const user_room = rooms.get(room);
     const correctGuess = guess === user_room.data.word;
 
-    const game = new GameManager(io);
-    let isUsersExists = await game.is_users_exist_in_room(room);
-
-    if (!isUsersExists) {
-      game.player_left(socket, user_room, room);
-      return;
-    }
-
     if (correctGuess) {
       if (!user_room.data.winners.includes(user))
         user_room.data.winners = [...user_room.data.winners, id];

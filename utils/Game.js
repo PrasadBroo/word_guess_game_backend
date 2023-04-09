@@ -3,8 +3,9 @@ const { generateRandomNumber } = require("./gameUtils");
 const { generateRandomWordAndDefination } = require("./utils");
 
 module.exports = class GameManager {
-  constructor(io) {
+  constructor(io,socket) {
     this.io = io;
+    this.socket = socket;
     this.rooms = io.sockets.adapter.rooms;
   }
 
@@ -53,9 +54,10 @@ module.exports = class GameManager {
   }
 
   decreament_game_counter(room_details, room_name) {
-    const decrementCounter = setInterval(() => {
+    const decrementCounter = setInterval(async() => {
       let word = room_details.data.word;
       const reveal_word_every = timeLimit / word.length;
+      const usersExist = await this.is_users_exist_in_room(room_name);
 
       room_details.data.counter -= 1;
 
@@ -81,6 +83,11 @@ module.exports = class GameManager {
         if (room_details.data.revealedLettersIndexes.length === word.length)
           return;
         this.revealLetter(room_name, room_details.data.word, index);
+      }
+
+      if(!usersExist){
+        this.player_left(this.socket,room_details,room_name);
+        return;
       }
 
       this.io
