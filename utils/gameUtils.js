@@ -31,3 +31,12 @@ module.exports.decreamentGameCounter = (io, room_details, room_name) => {
     io.in(room_name).emit("decrement_counter", room_details.data.counter);
   }, 1000);
 };
+module.exports.generateRandomNumber = (word_length, arr) => {
+  const min = 0;
+  const max = word_length - 1; //array index starts at 0
+  let randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
+  while (arr.includes(randomNum)) {
+    randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  return randomNum;
+};

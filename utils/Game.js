@@ -1,4 +1,5 @@
 const { timeLimit } = require("../constants/constants");
+const { generateRandomNumber } = require("./gameUtils");
 const { generateRandomWordAndDefination } = require("./utils");
 
 module.exports = class GameManager {
@@ -27,6 +28,7 @@ module.exports = class GameManager {
       gameUsers: users,
       winners: [],
       users: users,
+      revealedLettersIndexes: [],
     };
 
     console.log(wordData);
@@ -52,18 +54,33 @@ module.exports = class GameManager {
 
   decreament_game_counter(room_details, room_name) {
     const decrementCounter = setInterval(() => {
+      let word = room_details.data.word;
+      const reveal_word_every = timeLimit / word.length;
+
       room_details.data.counter -= 1;
+
       if (!room_details.data.isGameRunning) clearInterval(decrementCounter);
+
       if (room_details.data.counter === 0) {
         clearInterval(decrementCounter);
         this.end_game(room_details, room_name);
+        return;
       } //end game
-      if (room_details.data.counter / 30 in [1, 2, 3, 4, 5]) {
-        this.revealLetter(
-          room_name,
-          room_details.data.word,
-          room_details.data.counter / 30
-        );
+
+
+      if (room_details.data.counter % reveal_word_every === 0) {
+        let index = generateRandomNumber(word.length,room_details.data.revealedLettersIndexes);
+
+        if (!room_details.data.revealedLettersIndexes.includes(index)) {
+          room_details.data.revealedLettersIndexes = [
+            ...room_details.data.revealedLettersIndexes,
+            index,
+          ];
+        }
+
+        if (room_details.data.revealedLettersIndexes.length === word.length)
+          return;
+        this.revealLetter(room_name, room_details.data.word, index);
       }
 
       this.io
