@@ -1,9 +1,10 @@
+const { maxRoomSize } = require("../constants/constants");
 const { timeLimit } = require("../constants/constants");
 const { generateRandomNumber } = require("./gameUtils");
 const { generateRandomWordAndDefination } = require("./utils");
 
 module.exports = class GameManager {
-  constructor(io,socket) {
+  constructor(io, socket) {
     this.io = io;
     this.socket = socket;
     this.rooms = io.sockets.adapter.rooms;
@@ -54,7 +55,7 @@ module.exports = class GameManager {
   }
 
   decreament_game_counter(room_details, room_name) {
-    const decrementCounter = setInterval(async() => {
+    const decrementCounter = setInterval(async () => {
       let word = room_details.data.word;
       const reveal_word_every = timeLimit / word.length;
       const usersExist = await this.is_users_exist_in_room(room_name);
@@ -64,14 +65,16 @@ module.exports = class GameManager {
       if (!room_details.data.isGameRunning) clearInterval(decrementCounter);
 
       if (room_details.data.counter === 0) {
-        clearInterval(decrementCounter);
+        room_details.data.isGameRunning = false;
         this.end_game(room_details, room_name);
         return;
       } //end game
 
-
       if (room_details.data.counter % reveal_word_every === 0) {
-        let index = generateRandomNumber(word.length,room_details.data.revealedLettersIndexes);
+        let index = generateRandomNumber(
+          word.length,
+          room_details.data.revealedLettersIndexes
+        );
 
         if (!room_details.data.revealedLettersIndexes.includes(index)) {
           room_details.data.revealedLettersIndexes = [
@@ -85,8 +88,9 @@ module.exports = class GameManager {
         this.revealLetter(room_name, room_details.data.word, index);
       }
 
-      if(!usersExist){
-        this.player_left(this.socket,room_details,room_name);
+      if (!usersExist) {
+        room_details.data.isGameRunning = false;
+        this.player_left(this.socket, room_details, room_name);
         return;
       }
 
@@ -98,7 +102,7 @@ module.exports = class GameManager {
 
   async is_users_exist_in_room(room_name) {
     let users = await this.io.in(room_name).fetchSockets();
-    return users.length === 2;
+    return users.length === maxRoomSize;
   }
 
   end_game(room_details, room_name) {
